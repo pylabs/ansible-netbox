@@ -64,7 +64,7 @@
       lineinfile:
         path: "/opt/netbox/netbox/netbox/configuration.py"
         regexp: '^ALLOWED_HOSTS = \[\]'
-        line: "ALLOWED_HOSTS = ['0.0.0.0']"
+        line: "ALLOWED_HOSTS = ['{{ ansible_host }}']"
     - name: setup db name
       lineinfile:
         path: "/opt/netbox/netbox/netbox/configuration.py"
@@ -100,8 +100,8 @@
       args:
         chdir: "/opt/netbox/netbox"
     - name: copy nginx config to destination
-      copy:
-        src: "netbox_nginx"
+      template:
+        src: "netbox_nginx.j2"
         dest: "/etc/nginx/sites-available/netbox"
     - name: create soft link against nginx config
       file:

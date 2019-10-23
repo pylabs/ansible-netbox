@@ -3,7 +3,7 @@ server {
 
     listen [::]:80 default_server;
 
-    server_name _;
+    server_name {{ ansible_host }};
 
     client_max_body_size 25m;
 
