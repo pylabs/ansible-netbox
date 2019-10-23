@@ -1,0 +1,19 @@
+galaxy_info:
+  role_name: netbox
+  author: William Wu
+  description: Setup NetBox
+  company: PyLabs
+  license: MIT
+  min_ansible_version: 2.4
+  platforms:
+  - name: Debian
+    versions:
+    - Buster
+    - 10
+  galaxy_tags:
+    - debian
+    - netbox
+    - dcim
+dependencies:
+  - pylabs.python3
+  - pylabs.nginx
