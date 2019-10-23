@@ -7,7 +7,7 @@
         packages:
           - postgresql
           - libpq-dev
-          - python3-psycopg2
+          - python-psycopg2
           - python3-pip
           - libxml2-dev
           - libxslt1-dev
@@ -24,11 +24,15 @@
         state: started
         enabled: yes
     - name: create database in postgresql
+      become: yes
+      become_user: postgres
       postgresql_db:
         name: "{{ netbox_db_name }}"
         encoding: UTF-8
         template: template0
     - name: create database user which can connect to netbox db
+      become: yes
+      become_user: postgres
       postgresql_user:
         db: "{{ netbox_db_name }}"
         name: "{{ netbox_db_user }}"
@@ -39,6 +43,7 @@
       unarchive:
         src: "https://github.com/netbox-community/netbox/archive/v{{ netbox_version }}.tar.gz"
         dest: "/opt"
+        remote_src: yes
     - name: soft link netbox dir to /opt/netbox
       file:
         src: "/opt/netbox-{{ netbox_version }}"
@@ -52,38 +57,37 @@
       args:
         chdir: "/opt/netbox"
     - name: create configuration file
-      command: "cp /opt/netbox/netbox/configuration.example.py /opt/netbox/netbox/configuration.py"
+      command: "cp /opt/netbox/netbox/netbox/configuration.example.py /opt/netbox/netbox/netbox/configuration.py"
       args:
-        creates: "/opt/netbox/netbox/configuration.py"
+        creates: "/opt/netbox/netbox/netbox/configuration.py"
     - name: setup allowed hosts
       lineinfile:
-        path: "/opt/netbox/netbox/configuration.py"
+        path: "/opt/netbox/netbox/netbox/configuration.py"
         regexp: '^ALLOWED_HOSTS = \[\]'
         line: "ALLOWED_HOSTS = ['0.0.0.0']"
     - name: setup db name
       lineinfile:
-        path: "/opt/netbox/netbox/configuration.py"
-        regexp: "'NAME': 'netbox'"
-        insertafter: '^DATABASE = \{'
+        path: "/opt/netbox/netbox/netbox/configuration.py"
+        regexp: "^    'NAME': 'netbox'"
+        insertafter: "^DATABASE = \{"
         firstmatch: yes
-        line: "'NAME': '{{ netbox_db_name }}'"
+        line: "    'NAME': '{{ netbox_db_name }}',"
     - name: setup db user
       lineinfile:
-        path: "/opt/netbox/netbox/configuration.py"
-        regexp: "'USER': 'netbox'"
-        insertafter: "'NAME': '{{ netbox_db_name }}'"
+        path: "/opt/netbox/netbox/netbox/configuration.py"
+        regexp: "^    'USER': ''"
+        insertafter: "^    'NAME': '{{ netbox_db_name }}'"
         firstmatch: yes
-        line: "'USER': '{{ netbox_db_user }}'"
+        line: "    'USER': '{{ netbox_db_user }}',"
     - name: setup db password
       lineinfile:
-        path: "/opt/netbox/netbox/configuration.py"
-        regexp: "'PASSWORD': ''"
-        insertafter: "'USER': '{{ netbox_db_user }}'"
-        firstmatch: yes
-        line: "'PASSWORD': '{{ netbox_db_password }}'"
+        path: "/opt/netbox/netbox/netbox/configuration.py"
+        regexp: "^    'PASSWORD': ''"
+        insertafter: "^    'USER': '{{ netbox_db_user }}'"
+        line: "    'PASSWORD': '{{ netbox_db_password }}',"
     - name: setup secret key
       lineinfile:
-        path: "/opt/netbox/netbox/configuration.py"
+        path: "/opt/netbox/netbox/netbox/configuration.py"
         regexp: "^SECRET_KEY = ''"
         line: "SECRET_KEY = '{{ lookup('password', '/dev/null length=50 chars=ascii_letters,digits') }}'"
     - name: run db migrations
