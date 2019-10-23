@@ -76,14 +76,15 @@
       lineinfile:
         path: "/opt/netbox/netbox/netbox/configuration.py"
         regexp: "^    'USER': ''"
-        insertafter: "^    'NAME': '{{ netbox_db_name }}'"
+        insertafter: "^    'NAME': '{{ netbox_db_name }}',"
         firstmatch: yes
         line: "    'USER': '{{ netbox_db_user }}',"
     - name: setup db password
       lineinfile:
         path: "/opt/netbox/netbox/netbox/configuration.py"
         regexp: "^    'PASSWORD': ''"
-        insertafter: "^    'USER': '{{ netbox_db_user }}'"
+        insertafter: "^    'USER': '{{ netbox_db_user }}',"
+        firstmatch: yes
         line: "    'PASSWORD': '{{ netbox_db_password }}',"
     - name: setup secret key
       lineinfile:
