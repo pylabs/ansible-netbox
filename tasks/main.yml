@@ -17,6 +17,7 @@
           - libssl-dev
           - redis-server
           - zlib1g-dev
+          - supervisor
     - name: make sure postgresql is activated
       systemd:
         name: postgresql
@@ -44,7 +45,10 @@
         dest: "/opt/netbox"
         state: "link"
     - name: install python packages
-      command: "pip3 install -r requirements.txt"
+      command: "{{ item }}"
+      loop:
+        - "pip3 install -r requirements.txt"
+        - "pip3 install gunicorn"
       args:
         chdir: "/opt/netbox"
     - name: create configuration file
@@ -90,6 +94,37 @@
         - "python3 manage.py loaddata initial_data"
       args:
         chdir: "/opt/netbox/netbox"
+    - name: copy nginx config to destination
+      copy:
+        src: "netbox_nginx"
+        dest: "/etc/nginx/sites-available/netbox"
+    - name: create soft link against nginx config
+      file:
+        src: "/etc/nginx/sites-available/netbox"
+        dest: "/etc/nginx/sites-enabled/netbox"
+        state: link
+    - name: delete default nginx config
+      file:
+        path: "/etc/nginx/sites-enabled/default"
+        state: absent
+    - name: copy gunicorn config to destination
+      copy:
+        src: "gunicorn_config.py"
+        dest: "/opt/netbox/gunicorn_config.py"
+    - name: copy supervisor config to destination
+      copy:
+        src: "netbox.conf"
+        dest: "/etc/supervisor/conf.d/netbox.conf"
+    - name: ensure supervisor is enabled and restarted
+      systemd:
+        name: supervisor
+        state: restarted
+        enabled: yes
+    - name: ensure nginx is enabled and restarted
+      systemd:
+        name: nginx
+        state: restarted
+        enabled: yes
     - name: friendly notice
       debug: "msg={{ item }}"
       loop:
