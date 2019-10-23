@@ -69,7 +69,7 @@
       lineinfile:
         path: "/opt/netbox/netbox/netbox/configuration.py"
         regexp: "^    'NAME': 'netbox'"
-        insertafter: "^DATABASE = \{"
+        insertafter: '^DATABASE = \{'
         firstmatch: yes
         line: "    'NAME': '{{ netbox_db_name }}',"
     - name: setup db user
