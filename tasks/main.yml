@@ -91,6 +91,11 @@
         path: "/opt/netbox/netbox/netbox/configuration.py"
         regexp: "^SECRET_KEY = ''"
         line: "SECRET_KEY = '{{ lookup('password', '/dev/null length=50 chars=ascii_letters,digits') }}'"
+    - name: enforce global unique ip
+      lineinfile:
+        path: "/opt/netbox/netbox/netbox/configuration.py"
+        regexp: "^ENFORCE_GLOBAL_UNIQUE = "
+        line: "ENFORCE_GLOBAL_UNIQUE = True"
     - name: run db migrations
       command: "{{ item }}"
       loop:
