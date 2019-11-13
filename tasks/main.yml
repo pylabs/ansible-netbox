@@ -60,42 +60,13 @@
       command: "cp /opt/netbox/netbox/netbox/configuration.example.py /opt/netbox/netbox/netbox/configuration.py"
       args:
         creates: "/opt/netbox/netbox/netbox/configuration.py"
-    - name: setup allowed hosts
-      lineinfile:
-        path: "/opt/netbox/netbox/netbox/configuration.py"
-        regexp: '^ALLOWED_HOSTS = \[\]'
-        line: "ALLOWED_HOSTS = ['{{ ansible_host }}']"
-    - name: setup db name
-      lineinfile:
-        path: "/opt/netbox/netbox/netbox/configuration.py"
-        regexp: "^    'NAME': 'netbox'"
-        insertafter: '^DATABASE = \{'
-        firstmatch: yes
-        line: "    'NAME': '{{ netbox_db_name }}',"
-    - name: setup db user
-      lineinfile:
-        path: "/opt/netbox/netbox/netbox/configuration.py"
-        regexp: "^    'USER': ''"
-        insertafter: "^    'NAME': '{{ netbox_db_name }}',"
-        firstmatch: yes
-        line: "    'USER': '{{ netbox_db_user }}',"
-    - name: setup db password
-      lineinfile:
-        path: "/opt/netbox/netbox/netbox/configuration.py"
-        regexp: "^    'PASSWORD': ''"
-        insertafter: "^    'USER': '{{ netbox_db_user }}',"
-        firstmatch: yes
-        line: "    'PASSWORD': '{{ netbox_db_password }}',"
-    - name: setup secret key
-      lineinfile:
-        path: "/opt/netbox/netbox/netbox/configuration.py"
-        regexp: "^SECRET_KEY = ''"
-        line: "SECRET_KEY = '{{ lookup('password', '/dev/null length=50 chars=ascii_letters,digits') }}'"
-    - name: enforce global unique ip
-      lineinfile:
-        path: "/opt/netbox/netbox/netbox/configuration.py"
-        regexp: "^ENFORCE_GLOBAL_UNIQUE = "
-        line: "ENFORCE_GLOBAL_UNIQUE = True"
+    - name: setup configuration file
+      template:
+        src: "configuration.py.j2"
+        dest: "/opt/netbox/netbox/netbox/configuration.py"
+        owner: "www-data"
+        group: "www-data"
+        mode: "0600"
     - name: run db migrations
       command: "{{ item }}"
       loop:
@@ -125,19 +96,18 @@
       copy:
         src: "netbox.conf"
         dest: "/etc/supervisor/conf.d/netbox.conf"
-    - name: ensure supervisor is enabled and restarted
+    - name: ensure related services are enabled and restarted
       systemd:
-        name: supervisor
+        name: "{{ item }}"
         state: restarted
         enabled: yes
-    - name: ensure nginx is enabled and restarted
-      systemd:
-        name: nginx
-        state: restarted
-        enabled: yes
+      loop:
+        - redis
+        - supervisor
+        - nginx
     - name: friendly notice
       debug: "msg={{ item }}"
       loop:
-        - "Don't forget to create super user account by executing python3 manage.py createsuperuser"
+        - "Don't forget to change directory to /opt/netbox/netbox and create user by executing python3 manage.py createsuperuser"
   tags:
     - netbox
