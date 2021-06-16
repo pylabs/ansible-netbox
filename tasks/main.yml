@@ -1,7 +1,7 @@
 ---
 - block:
     - name: install packages
-      apt:
+      ansible.builtin.apt:
         name: "{{ packages }}"
       vars:
         packages:
@@ -19,56 +19,56 @@
           - zlib1g-dev
           - supervisor
     - name: make sure postgresql is activated
-      systemd:
+      ansible.builtin.systemd:
         name: postgresql
         state: started
         enabled: yes
     - name: create database in postgresql
       become: yes
       become_user: postgres
-      postgresql_db:
+      community.postgresql.postgresql_db:
         name: "{{ netbox_db_name }}"
         encoding: UTF-8
         template: template0
     - name: create database user which can connect to netbox db
       become: yes
       become_user: postgres
-      postgresql_user:
+      community.postgresql.postgresql_user:
         db: "{{ netbox_db_name }}"
         name: "{{ netbox_db_user }}"
         password: "{{ netbox_db_password }}"
         priv: ALL
         expires: infinity
     - name: download netbox release package
-      unarchive:
+      ansible.builtin.unarchive:
         src: "https://github.com/netbox-community/netbox/archive/v{{ netbox_version }}.tar.gz"
         dest: "/opt"
         remote_src: yes
     - name: soft link netbox dir to /opt/netbox
-      file:
+      ansible.builtin.file:
         src: "/opt/netbox-{{ netbox_version }}"
         dest: "/opt/netbox"
         state: "link"
     - name: install python packages
-      command: "{{ item }}"
+      ansible.builtin.command: "{{ item }}"
       loop:
         - "pip3 install -r requirements.txt"
         - "pip3 install gunicorn"
       args:
         chdir: "/opt/netbox"
     - name: create configuration file
-      command: "cp /opt/netbox/netbox/netbox/configuration.example.py /opt/netbox/netbox/netbox/configuration.py"
+      ansible.builtin.command: "cp /opt/netbox/netbox/netbox/configuration.example.py /opt/netbox/netbox/netbox/configuration.py"
       args:
         creates: "/opt/netbox/netbox/netbox/configuration.py"
     - name: setup configuration file
-      template:
+      ansible.builtin.template:
         src: "configuration.py.j2"
         dest: "/opt/netbox/netbox/netbox/configuration.py"
         owner: "www-data"
         group: "www-data"
         mode: "0600"
     - name: run db migrations
-      command: "{{ item }}"
+      ansible.builtin.command: "{{ item }}"
       loop:
         - "python3 manage.py migrate"
         - "python3 manage.py collectstatic --no-input"
@@ -76,28 +76,28 @@
       args:
         chdir: "/opt/netbox/netbox"
     - name: copy nginx config to destination
-      template:
+      ansible.builtin.template:
         src: "netbox_nginx.j2"
         dest: "/etc/nginx/sites-available/netbox"
     - name: create soft link against nginx config
-      file:
+      ansible.builtin.file:
         src: "/etc/nginx/sites-available/netbox"
         dest: "/etc/nginx/sites-enabled/netbox"
         state: link
     - name: delete default nginx config
-      file:
+      ansible.builtin.file:
         path: "/etc/nginx/sites-enabled/default"
         state: absent
     - name: copy gunicorn config to destination
-      copy:
+      ansible.builtin.copy:
         src: "gunicorn_config.py"
         dest: "/opt/netbox/gunicorn_config.py"
     - name: copy supervisor config to destination
-      copy:
+      ansible.builtin.copy:
         src: "netbox.conf"
         dest: "/etc/supervisor/conf.d/netbox.conf"
     - name: ensure related services are enabled and restarted
-      systemd:
+      ansible.builtin.systemd:
         name: "{{ item }}"
         state: restarted
         enabled: yes
@@ -106,7 +106,7 @@
         - supervisor
         - nginx
     - name: friendly notice
-      debug: "msg={{ item }}"
+      ansible.builtin.debug: "msg={{ item }}"
       loop:
         - "Don't forget to change directory to /opt/netbox/netbox and create user by executing python3 manage.py createsuperuser"
   tags:
